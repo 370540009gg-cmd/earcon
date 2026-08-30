@@ -1,0 +1,20 @@
+# data / runtime artifacts
+*.db
+*.log
+.env
+.env.*
+
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
+
+# editors / tools
+.$*.dtmp
+.DS_Store
+.idea/
+.vscode/
+.pytest_cache/
