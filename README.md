@@ -45,7 +45,12 @@ JitRL loop:
 ## Quickstart
 
 ```bash
-pip install "earcon[gateway,openai]"
+# legacy pip (<22) mishandles pyproject-only git installs (UNKNOWN-0.0.0):
+python3 -m pip install --upgrade pip
+
+# from GitHub (PyPI coming soon):
+python3 -m pip install "git+https://github.com/370540009gg-cmd/earcon.git"
+# extras: "earcon[gateway,openai]" via pip, or install fastapi/uvicorn yourself
 
 # terminal 1: run the gateway against any OpenAI-compatible upstream
 earcon serve --upstream https://api.openai.com/v1 \
