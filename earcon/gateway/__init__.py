@@ -91,10 +91,22 @@ class GatewayMemory:
 
 
 class Gateway:
-    def __init__(self, upstream, api_key, db_path, judge_model,
+    """A transparent learning proxy. The work channel is pure pass-through
+    (upstream URL, key and model all come from the client's own request);
+    the only thing configured here is the judge channel - because the judge
+    is a global function (scoring closed sessions) that has nothing to do
+    with whichever model is doing the work right now."""
+
+    def __init__(self, judge_model, db_path,
+                 judge_upstream, judge_api_key,
+                 upstream=None, api_key=None,          # fallback only
                  inject=True, extra_body=None, config=None):
-        self.upstream = upstream.rstrip("/")
+        # fallback work channel for clients that don't carry a key
+        self.upstream = (upstream or "").rstrip("/")
         self.api_key = api_key
+        # judge channel: independent, global, one-time configuration
+        self.judge_upstream = judge_upstream.rstrip("/")
+        self.judge_api_key = judge_api_key
         self.judge_model = judge_model
         self.inject = inject
         self.extra_body = dict(extra_body or {})
@@ -173,10 +185,10 @@ class Gateway:
                    "temperature": 0.0}
         payload.update(self.extra_body)
         req = urllib.request.Request(
-            self.upstream + "/chat/completions",
+            self.judge_upstream + "/chat/completions",
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json",
-                     "Authorization": "Bearer " + (self.api_key or "")})
+                     "Authorization": "Bearer " + (self.judge_api_key or "")})
         with urllib.request.urlopen(req, timeout=120) as r:
             d = json.loads(r.read().decode("utf-8"))
         return d["choices"][0]["message"].get("content") or ""
@@ -231,12 +243,17 @@ class Gateway:
                     body = dict(body)
                     body["messages"] = new_msgs
 
-        upstream_key = self.api_key or auth_key
+        # work channel: pure pass-through. Upstream URL falls back to the
+        # configured one; the key falls back to the gateway's own only when
+        # the client didn't send one.
+        target_upstream = (body.pop("_upstream", None) or
+                           self.upstream).rstrip("/")
+        upstream_key = auth_key or self.api_key or ""
         stream = body.get("stream", False)
         body_json = json.dumps(body).encode("utf-8")
         headers = {"Content-Type": "application/json",
                    "Authorization": "Bearer " + upstream_key}
-        req = urllib.request.Request(self.upstream + "/chat/completions",
+        req = urllib.request.Request(target_upstream + "/chat/completions",
                                      data=body_json, headers=headers)
         try:
             up_resp = urllib.request.urlopen(req, timeout=300)

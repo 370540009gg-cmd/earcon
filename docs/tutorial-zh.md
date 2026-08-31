@@ -61,32 +61,41 @@ pip install earcon
 
 ## 第二步：启动中介（2 分钟）
 
-继续在终端里粘贴这段命令（**三处要换成你自己的信息**）：
+> **这里有个关键概念要先讲清楚**：earcon 网关只负责"记笔记"这一件事。
+> 你干活的 AI（kimi、GLM、GPT……）**不用在这里配置**——它的地址和密钥
+> 一直在你自己的应用里（ZCode/Codex 的供应商设置里），earcon 只是原样转发。
+> 你要在启动命令里配的，只有一件事：**谁来当"裁判"（复盘打分的模型）**。
+
+继续在终端里粘贴这段命令（**三处换成你裁判服务的信息**）：
 
 ```bash
 earcon serve \
-  --upstream https://api.deepseek.com/v1 \
-  --api-key sk-这里换成你的密钥 \
+  --judge-upstream https://api.deepseek.com/v1 \
+  --judge-api-key sk-裁判服务的密钥 \
   --judge-model deepseek-chat
 ```
 
-各部分含义（对照上图第二栏）：
+三部分含义（对照上图第二栏）：
 
 | 参数 | 填什么 | 说明 |
 |---|---|---|
-| `--upstream` | 你 AI 服务的接口地址 | DeepSeek 填 `https://api.deepseek.com/v1`；Kimi 填 `https://api.moonshot.cn/v1`；自部署填自己的地址 |
-| `--api-key` | 你的真实密钥 | earcon 会替你保管，你的应用里之后填假密钥都行 |
-| `--judge-model` | 记笔记用的模型名 | 选个便宜的就够，比如 `deepseek-chat` |
+| `--judge-upstream` | 裁判服务的接口地址 | 配一次，之后不管你干活用 kimi/GLM/GPT，复盘永远走这里 |
+| `--judge-api-key` | 裁判服务的密钥 | 只用于复盘调用，和你干活的密钥完全独立 |
+| `--judge-model` | 裁判模型名 | 选个便宜的就够，比如 `deepseek-chat`（复盘不需要旗舰模型） |
 
-看到这一行，就代表成功了：
+看到这两行，就代表成功了：
 
 ```
-earcon gateway: http://127.0.0.1:8800  ->  https://api.deepseek.com/v1
+earcon gateway: http://127.0.0.1:8800
+work channel: pass-through (clients keep their own upstream+key)
+judge channel: deepseek-chat -> https://api.deepseek.com/v1
 ```
 
 **这个终端窗口别关**（关了中介就下班了）。想让它常驻后台，Mac 可以在命令前加 `nohup`、结尾加 `&`。
 
 > 🤔 **`127.0.0.1:8800` 是什么？** 就是你自己电脑的"门牌号"。earcon 住在你电脑上，只有你能访问，聊天内容不会被传到 earcon 的服务器——因为它根本没有服务器。
+>
+> 🤔 **干活和裁判可以是不同厂商吗？** 完全可以。这就是把裁判单独配置的原因：比如干活用 Kimi（Kimi 的地址和密钥一直在你应用里），裁判用免费的 GLM——两边互不干扰。
 
 ---
 
@@ -102,13 +111,13 @@ earcon gateway: http://127.0.0.1:8800  ->  https://api.deepseek.com/v1
 # 原来是这样：
 client = OpenAI(
     base_url="https://api.deepseek.com/v1",
-    api_key="sk-你的密钥",
+    api_key="sk-你的密钥",       # ← 你干活的 key 留在原地
 )
 
-# 改成这样（只改了网址，密钥随便填）：
+# 改成这样（只改了网址；密钥留着你原来的，earcon 会原样透传）：
 client = OpenAI(
     base_url="http://127.0.0.1:8800/v1",
-    api_key="no-key-needed",
+    api_key="sk-你的密钥",       # ← 这行一个字都不用动
 )
 ```
 
@@ -177,7 +186,7 @@ sqlite3 earcon_memory.db "DELETE FROM cards WHERE id = 卡片编号"
 第一次用，可以加个 `--no-inject` 参数启动：
 
 ```bash
-earcon serve --upstream ... --api-key ... --judge-model ... --no-inject
+earcon serve --judge-upstream ... --judge-api-key ... --judge-model ... --no-inject
 ```
 
 这模式下 earcon **只记笔记、不干预对话**。你先跑两三天，用上面的 sqlite 命令看看"裁判"记的笔记质量如何——觉得靠谱了，去掉这个参数重启，正式开启"越用越聪明"。

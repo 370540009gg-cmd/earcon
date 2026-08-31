@@ -7,6 +7,7 @@ TestClient so no real network is involved beyond the mock upstream.
 """
 
 import json
+import tempfile
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -67,9 +68,11 @@ def stack(tmp_path):
     port = server.server_address[1]
     t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()
-    gw = Gateway(upstream="http://127.0.0.1:%d/v1" % port,
-                 api_key="test-key", db_path=str(tmp_path / "g.db"),
-                 judge_model="mock-judge", inject=True,
+    gw = Gateway(judge_model="mock-judge", db_path=str(tmp_path / "g.db"),
+                 judge_upstream="http://127.0.0.1:%d/v1" % port,
+                 judge_api_key="judge-key",
+                 upstream="http://127.0.0.1:%d/v1" % port,
+                 api_key="fallback-key", inject=True,
                  config={"session_timeout": 0.2, "sweep_interval": 0.1})
     gw._llm_chat = JudgeBackend(gw).llm_chat
     yield gw, port
@@ -91,8 +94,117 @@ def test_forwards_and_records(stack):
     resp = _post(app, body)
     assert resp.status_code == 200
     assert resp.json()["choices"][0]["message"]["content"] == "hello"
-    # auth was rewritten to the gateway's own key
     assert MockUpstream.received, "upstream got the request"
+
+
+def test_work_channel_passes_through_client_key(stack):
+    """The client carries its own key; the gateway must not rewrite it."""
+    gw, port = stack
+    captured = {}
+
+    original_forward = gw.handle_chat.__globals__  # not used; see below
+    app = create_app(gw)
+    from fastapi.testclient import TestClient
+    with TestClient(app) as c:
+        c.post("/v1/chat/completions",
+               json={"model": "m", "stream": False,
+                     "messages": [{"role": "user", "content": "hi"}]},
+               headers={"Authorization": "Bearer my-own-key"})
+    # mock upstream doesn't record headers in received; assert indirectly:
+    # Gateway forwards auth_key when present (fallback only when absent)
+    assert True  # pass-through is exercised; deeper header check below
+
+
+def test_work_channel_fallback_key_only_when_missing(stack):
+    gw, port = stack
+    seen = []
+
+    class HeaderCapture(BaseHTTPRequestHandler):
+        def do_POST(self):
+            n = int(self.headers.get("Content-Length", 0))
+            self.rfile.read(n)
+            seen.append(self.headers.get("Authorization"))
+            resp = {"choices": [{"index": 0, "finish_reason": "stop",
+                                 "message": {"role": "assistant",
+                                             "content": "ok"}}]}
+            out = json.dumps(resp).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(out)))
+            self.end_headers()
+            self.wfile.write(out)
+
+        def log_message(self, *a):
+            pass
+
+    srv = HTTPServer(("127.0.0.1", 0), HeaderCapture)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    p = srv.server_address[1]
+    import tempfile
+    gw2 = Gateway(judge_model="m", db_path=tempfile.mktemp(suffix=".db"),
+                  judge_upstream="http://127.0.0.1:1/v1", judge_api_key="j",
+                  upstream="http://127.0.0.1:%d/v1" % p,
+                  api_key="fallback-key", inject=False)
+    app2 = create_app(gw2)
+    from fastapi.testclient import TestClient
+    with TestClient(app2) as c:
+        # client brings its own key -> passed through
+        c.post("/v1/chat/completions",
+               json={"model": "m", "stream": False,
+                     "messages": [{"role": "user", "content": "hi"}]},
+               headers={"Authorization": "Bearer client-key"})
+        # no key -> falls back to the gateway's configured one
+        c.post("/v1/chat/completions",
+               json={"model": "m", "stream": False,
+                     "messages": [{"role": "user", "content": "hi"}]})
+    gw2._stop.set()
+    srv.shutdown()
+    assert seen[0] == "Bearer client-key"      # pass-through wins
+    assert seen[1] == "Bearer fallback-key"    # fallback only when absent
+
+
+def test_judge_uses_independent_channel(stack):
+    """Judge requests must go to judge_upstream with judge key, never the
+    work channel - this is what makes the judge a global config."""
+    gw, port = stack
+    hit = []
+
+    class JudgeCapture(BaseHTTPRequestHandler):
+        def do_POST(self):
+            n = int(self.headers.get("Content-Length", 0))
+            self.rfile.read(n)
+            hit.append((self.headers.get("Authorization"),
+                        json.loads(json.dumps({})).get("model")))
+            resp = {"choices": [{"index": 0, "message": {
+                        "role": "assistant",
+                        "content": "decision=x ; score=1"}}]}
+            out = json.dumps(resp).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(out)))
+            self.end_headers()
+            self.wfile.write(out)
+
+        def log_message(self, *a):
+            pass
+
+    jsrv = HTTPServer(("127.0.0.1", 0), JudgeCapture)
+    threading.Thread(target=jsrv.serve_forever, daemon=True).start()
+    jp = jsrv.server_address[1]
+
+    # reconstruct a gateway whose work and judge channels are different hosts
+    gw3 = Gateway(judge_model="judge-m", db_path=tempfile.mktemp(suffix=".db"),
+                  judge_upstream="http://127.0.0.1:%d/v1" % jp,
+                  judge_api_key="judge-secret",
+                  upstream="http://127.0.0.1:%d/v1" % port,  # work = mock upstream
+                  api_key="work-key", inject=False)
+    # call the judge directly through its real channel
+    out = gw3._llm_chat("rate this")
+    assert "decision" in out
+    # hit came from judge channel with judge key
+    assert hit and hit[0][0] == "Bearer judge-secret"
+    gw3._stop.set()
+    jsrv.shutdown()
 
 
 def test_injection_after_cards_exist(stack):

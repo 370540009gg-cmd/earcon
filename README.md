@@ -49,12 +49,16 @@ JitRL loop:
 ```bash
 python3 -m pip install earcon
 
-# terminal 1: run the gateway against any OpenAI-compatible upstream
-earcon serve --upstream https://api.openai.com/v1 \
-    --api-key $OPENAI_API_KEY --judge-model gpt-4o-mini
+# terminal 1: start the gateway. The ONLY thing you configure here is the
+# judge channel (it scores closed sessions, globally - regardless of which
+# model does the work). The work channel is pure pass-through: clients keep
+# their own upstream URL, key and model.
+earcon serve --judge-upstream https://api.deepseek.com/v1 \
+    --judge-api-key $DEEPSEEK_KEY --judge-model deepseek-chat
 
 # terminal 2: any OpenAI app, one line changed
 #   OpenAI(base_url="http://127.0.0.1:8800/v1", ...)
+# (upstream URL and key stay wherever your app already has them)
 python examples/quickstart_client.py
 ```
 

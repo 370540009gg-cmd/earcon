@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 """CLI: `earcon serve` starts the learning proxy.
 
+The only thing you configure here is the judge channel; the work channel
+is pure pass-through (clients keep their own upstream, key and model).
+
 Examples:
-    earcon serve --upstream https://api.openai.com/v1 --api-key $KEY \
-        --judge-model gpt-4o-mini --port 8800
+    earcon serve --judge-upstream https://api.deepseek.com/v1 \
+        --judge-api-key $DSK --judge-model deepseek-chat
 
     # pure observation (no injection) while you assess judge quality:
-    earcon serve --upstream ... --no-inject
+    earcon serve --judge-... --no-inject
 """
 
 import argparse
@@ -18,17 +21,25 @@ def build_parser():
     p = argparse.ArgumentParser(prog="earcon", description=__doc__)
     sub = p.add_subparsers(dest="cmd")
     serve = sub.add_parser("serve", help="run the learning proxy gateway")
-    serve.add_argument("--upstream", required=True,
-                       help="OpenAI-compatible upstream base URL, e.g. "
-                            "https://api.openai.com/v1 "
-                            "(env: EARCON_UPSTREAM)")
+    serve.add_argument("--upstream", default=os.environ.get("EARCON_UPSTREAM", ""),
+                       help="fallback OpenAI-compatible upstream, used only when "
+                            "the client doesn't carry one (env: EARCON_UPSTREAM). "
+                            "Most clients already point at their real upstream "
+                            "before switching baseURL - leave this empty")
     serve.add_argument("--api-key", default=os.environ.get("EARCON_API_KEY", ""),
-                       help="key used for upstream calls; clients' own keys "
-                            "are ignored (env: EARCON_API_KEY)")
+                       help="fallback key for the work channel, used only when "
+                            "the client didn't send one (env: EARCON_API_KEY)")
     serve.add_argument("--port", type=int, default=8800)
     serve.add_argument("--db", default="earcon_memory.db")
     serve.add_argument("--judge-model", required=True,
-                       help="model used for credit assignment")
+                       help="the ONLY required configuration: which model scores "
+                            "sessions at close. Configured once here, it judges "
+                            "every session regardless of which model does the work")
+    serve.add_argument("--judge-upstream", required=True,
+                       help="OpenAI-compatible base URL of the judge channel "
+                            "(env: EARCON_JUDGE_UPSTREAM)")
+    serve.add_argument("--judge-api-key", default=os.environ.get("EARCON_JUDGE_API_KEY", ""),
+                       help="key for the judge channel (env: EARCON_JUDGE_API_KEY)")
     serve.add_argument("--no-inject", action="store_true",
                        help="record-only mode: judge sessions, never inject")
     serve.add_argument("--judge-extra-body", default=None,
@@ -53,15 +64,19 @@ def main(argv=None):
 
     # local imports so the core library never requires fastapi
     from earcon.gateway import Gateway, create_app
-    gw = Gateway(upstream=args.upstream, api_key=args.api_key,
-                 db_path=args.db, judge_model=args.judge_model,
+    gw = Gateway(judge_model=args.judge_model, db_path=args.db,
+                 judge_upstream=args.judge_upstream,
+                 judge_api_key=args.judge_api_key,
+                 upstream=args.upstream or None, api_key=args.api_key or None,
                  inject=not args.no_inject, extra_body=extra,
                  config={"session_timeout": args.session_timeout,
                          "inject_top_k": args.inject_top_k})
     app = create_app(gw)
 
     import uvicorn
-    print("earcon gateway: http://127.0.0.1:%d  ->  %s" % (args.port, args.upstream))
+    print("earcon gateway: http://127.0.0.1:%d" % args.port)
+    print("work channel: pass-through (clients keep their own upstream+key)")
+    print("judge channel: %s -> %s" % (args.judge_model, args.judge_upstream))
     print("memory: %s | mode: %s" % (args.db,
                                      "record+inject" if gw.inject else "record-only"))
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
