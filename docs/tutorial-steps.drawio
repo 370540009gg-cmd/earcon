@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="earcon-tutorial">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="t1" value="第一步：安装" style="swimlane;startSize=28;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="640" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="t1c" value="打开「终端」（Terminal）&#xa;&#xa;粘贴这行命令，回车：&#xa;pip install earcon" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1a1a1a;strokeColor=#4d4d4d;fontColor=#e6e6e6;fontSize=13;align=left;spacingLeft=14;shape=mxgraph.flowchart.terminator?strokeWidth=0;" vertex="1" parent="t1">
+          <mxGeometry x="20" y="38" width="400" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t1n" value="装完就拥有&#xa;earcon 命令&#xa;（像装了个 App）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="t1">
+          <mxGeometry x="460" y="38" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t2" value="第二步：启动网关（earcon 是你和 AI 服务之间的「翻译+记笔记」中介）" style="swimlane;startSize=28;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="190" width="640" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="t2c" value="earcon serve \&#xa;  --upstream https://api.deepseek.com/v1 \&#xa;  --api-key sk-你的密钥 \&#xa;  --judge-model deepseek-chat" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1a1a1a;strokeColor=#4d4d4d;fontColor=#e6e6e6;fontSize=12;align=left;spacingLeft=14;" vertex="1" parent="t2">
+          <mxGeometry x="20" y="40" width="400" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="t2n1" value="upstream =&#xa;你本来在用的 AI 服务&#xa;（OpenAI/DeepSeek/Kimi 都行）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="t2">
+          <mxGeometry x="440" y="38" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t2n2" value="judge-model =&#xa;记笔记用的模型&#xa;（选个便宜的就行）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="t2">
+          <mxGeometry x="440" y="108" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t2ok" value="看到这行就是成功了：earcon gateway: http://127.0.0.1:8800" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontColor=#82b366;fontStyle=1;" vertex="1" parent="t2">
+          <mxGeometry x="20" y="145" width="400" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t3" value="第三步：让 AI 应用「走」这个中介（只改一行网址）" style="swimlane;startSize=28;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="640" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="t3c" value="# 原来这样：&#xa;client = OpenAI(base_url=&quot;https://api.deepseek.com/v1&quot;)&#xa;&#xa;# 现在这样（只改了引号里的网址）：&#xa;client = OpenAI(&#xa;  base_url=&quot;http://127.0.0.1:8800/v1&quot;,&#xa;  api_key=&quot;随便填&quot;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1a1a1a;strokeColor=#4d4d4d;fontColor=#e6e6e6;fontSize=11;align=left;spacingLeft=14;" vertex="1" parent="t3">
+          <mxGeometry x="20" y="38" width="400" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="t3n" value="你的一切使用习惯&#xa;不用变：&#xa;该问什么问什么，&#xa;该写代码写代码。&#xa;AI 回答正常出，&#xa;只是后台默默记笔记" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="t3">
+          <mxGeometry x="440" y="38" width="180" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t4" value="之后发生什么（你什么都不用做）" style="swimlane;startSize=28;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="660" width="640" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="t4a" value="聊天结束&#xa;（或30分钟没动静）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="t4">
+          <mxGeometry x="30" y="45" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t4b" value="裁判模型复盘整段对话&#xa;提炼 1~5 张经验卡片：&#xa;&quot;这个做法有效 +2 分&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="t4">
+          <mxGeometry x="210" y="40" width="190" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t4c" value="卡片存进本地文件&#xa;earcon_memory.db&#xa;（完全属于你）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="t4">
+          <mxGeometry x="440" y="40" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t4d" value="下次遇到相似任务 → 自动把经验塞进提示词 → AI 起手就更聪明" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="t4">
+          <mxGeometry x="30" y="120" width="580" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="t4" source="t4a" target="t4b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="t4" source="t4b" target="t4c">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -28,6 +28,8 @@ your app (any OpenAI SDK / LangGraph / coding client ...)
 
 ![architecture](docs/architecture.png)
 
+> 🇨🇳 中文新手教程（含图解，10 分钟上手）：[docs/tutorial-zh.md](docs/tutorial-zh.md)
+
 ## Why not just mem0 / Letta / Zep?
 
 Those store *facts* ("the user prefers concise answers") and retrieve
