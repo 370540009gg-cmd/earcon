@@ -45,10 +45,7 @@ JitRL loop:
 ## Quickstart
 
 ```bash
-python3 -m pip install "earcon[gateway,openai]"
-
-# on Python environments with a very old pip (<22), upgrade first:
-# python3 -m pip install --upgrade pip
+python3 -m pip install earcon
 
 # terminal 1: run the gateway against any OpenAI-compatible upstream
 earcon serve --upstream https://api.openai.com/v1 \
@@ -58,6 +55,9 @@ earcon serve --upstream https://api.openai.com/v1 \
 #   OpenAI(base_url="http://127.0.0.1:8800/v1", ...)
 python examples/quickstart_client.py
 ```
+
+(Extras: `earcon[openai]` for the logprobs backend, `earcon[dev]` for tests.
+On Python environments with a very old pip <22, upgrade pip first.)
 
 Work normally. Sessions close (30 min idle, or explicit
 `POST /v1/earcon/session/default/close`), the judge distills cards,

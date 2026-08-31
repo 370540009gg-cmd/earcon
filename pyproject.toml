@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "earcon"
-version = "0.1.0"
+version = "0.1.1"
 description = "A self-evolving memory proxy for OpenAI-compatible clients: any LLM app gets experience-driven learning by changing one baseURL."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -22,8 +22,12 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
+dependencies = [
+    "fastapi>=0.100",
+    "uvicorn>=0.23",
+]
+
 [project.optional-dependencies]
-gateway = ["fastapi>=0.100", "uvicorn>=0.23"]
 openai = ["openai>=1.0"]
 dev = ["pytest>=7.0"]
 
