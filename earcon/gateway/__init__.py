@@ -91,17 +91,17 @@ class GatewayMemory:
 
 
 class Gateway:
-    """A transparent learning proxy. The work channel is pure pass-through
-    (upstream URL, key and model all come from the client's own request);
-    the only thing configured here is the judge channel - because the judge
-    is a global function (scoring closed sessions) that has nothing to do
-    with whichever model is doing the work right now."""
+    """A transparent learning proxy. Work-channel routing:
+    explicit --route > client config files > built-in public-cloud table.
+    The judge channel is configured once at startup and scores every session
+    regardless of which model is doing the work."""
 
     def __init__(self, judge_model, db_path,
                  judge_upstream, judge_api_key,
-                 upstream=None, api_key=None,          # fallback only
+                 upstream=None, api_key=None,
+                 routes=None, routes_from_clients=None, use_builtin_routes=True,
                  inject=True, extra_body=None, config=None):
-        # fallback work channel for clients that don't carry a key
+        # fallback work channel (legacy single-upstream setups)
         self.upstream = (upstream or "").rstrip("/")
         self.api_key = api_key
         # judge channel: independent, global, one-time configuration
@@ -113,6 +113,11 @@ class Gateway:
         self.conf = dict(DEFAULTS)
         self.conf.update(config or {})
         self.mem = GatewayMemory(db_path)
+
+        from earcon.gateway.routes import RouteTable
+        self.route_table = RouteTable(routes=routes or [],
+                                      routes_from_clients=routes_from_clients or [],
+                                      use_builtin=use_builtin_routes)
 
         self.sessions = {}            # sid -> {"turns": [...], "last": ts}
         self.session_lock = threading.Lock()
@@ -243,12 +248,18 @@ class Gateway:
                     body = dict(body)
                     body["messages"] = new_msgs
 
-        # work channel: pure pass-through. Upstream URL falls back to the
-        # configured one; the key falls back to the gateway's own only when
-        # the client didn't send one.
-        target_upstream = (body.pop("_upstream", None) or
-                           self.upstream).rstrip("/")
-        upstream_key = auth_key or self.api_key or ""
+        # work channel: route by model name, with explicit > client-config >
+        # built-in resolution. Upstream URL comes from the route table; the
+        # key is the client's own unless the route provides one.
+        model = body.get("model", "")
+        try:
+            target_upstream, route_key = self.route_table.resolve(model, auth_key)
+        except KeyError:
+            return {"error": {"no_route_for_model": model,
+                              "hint": "add it: --route '%s=https://upstream/v1' "
+                                      "or let it be read from client configs "
+                                      "(--routes-from zcode,codex,hermes)" % model}}
+        upstream_key = route_key or self.api_key or ""
         stream = body.get("stream", False)
         body_json = json.dumps(body).encode("utf-8")
         headers = {"Content-Type": "application/json",

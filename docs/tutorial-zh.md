@@ -72,7 +72,8 @@ pip install earcon
 earcon serve \
   --judge-upstream https://api.deepseek.com/v1 \
   --judge-api-key sk-裁判服务的密钥 \
-  --judge-model deepseek-chat
+  --judge-model deepseek-chat \
+  --routes-from zcode,codex,hermes   # 网关自动读取你这些客户端里已有的模型配置
 ```
 
 三部分含义（对照上图第二栏）：
@@ -82,12 +83,13 @@ earcon serve \
 | `--judge-upstream` | 裁判服务的接口地址 | 配一次，之后不管你干活用 kimi/GLM/GPT，复盘永远走这里 |
 | `--judge-api-key` | 裁判服务的密钥 | 只用于复盘调用，和你干活的密钥完全独立 |
 | `--judge-model` | 裁判模型名 | 选个便宜的就够，比如 `deepseek-chat`（复盘不需要旗舰模型） |
+| `--routes-from` | 你的客户端 | 网关自动读取 zcode/codex/hermes 里已有的模型配置，拼出"模型→上游"路由表；不用手工列 |
 
 看到这两行，就代表成功了：
 
 ```
 earcon gateway: http://127.0.0.1:8800
-work channel: pass-through (clients keep their own upstream+key)
+work channel: routed by model (8 routes loaded, builtin=on)
 judge channel: deepseek-chat -> https://api.deepseek.com/v1
 ```
 

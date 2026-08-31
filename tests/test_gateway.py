@@ -69,6 +69,7 @@ def stack(tmp_path):
     t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()
     gw = Gateway(judge_model="mock-judge", db_path=str(tmp_path / "g.db"),
+                 routes=["m-test=http://127.0.0.1:%d/v1" % port],
                  judge_upstream="http://127.0.0.1:%d/v1" % port,
                  judge_api_key="judge-key",
                  upstream="http://127.0.0.1:%d/v1" % port,
@@ -89,7 +90,7 @@ def _post(app, body):
 def test_forwards_and_records(stack):
     gw, port = stack
     app = create_app(gw)
-    body = {"model": "m", "stream": False, "messages": [
+    body = {"model": "m-test", "stream": False, "messages": [
         {"role": "user", "content": "how do I configure X?"}]}
     resp = _post(app, body)
     assert resp.status_code == 200
@@ -107,7 +108,7 @@ def test_work_channel_passes_through_client_key(stack):
     from fastapi.testclient import TestClient
     with TestClient(app) as c:
         c.post("/v1/chat/completions",
-               json={"model": "m", "stream": False,
+               json={"model": "m-test", "stream": False,
                      "messages": [{"role": "user", "content": "hi"}]},
                headers={"Authorization": "Bearer my-own-key"})
     # mock upstream doesn't record headers in received; assert indirectly:
@@ -143,6 +144,7 @@ def test_work_channel_fallback_key_only_when_missing(stack):
     import tempfile
     gw2 = Gateway(judge_model="m", db_path=tempfile.mktemp(suffix=".db"),
                   judge_upstream="http://127.0.0.1:1/v1", judge_api_key="j",
+                  routes=["m-test=http://127.0.0.1:%d/v1" % p],
                   upstream="http://127.0.0.1:%d/v1" % p,
                   api_key="fallback-key", inject=False)
     app2 = create_app(gw2)
@@ -150,12 +152,12 @@ def test_work_channel_fallback_key_only_when_missing(stack):
     with TestClient(app2) as c:
         # client brings its own key -> passed through
         c.post("/v1/chat/completions",
-               json={"model": "m", "stream": False,
+               json={"model": "m-test", "stream": False,
                      "messages": [{"role": "user", "content": "hi"}]},
                headers={"Authorization": "Bearer client-key"})
         # no key -> falls back to the gateway's configured one
         c.post("/v1/chat/completions",
-               json={"model": "m", "stream": False,
+               json={"model": "m-test", "stream": False,
                      "messages": [{"role": "user", "content": "hi"}]})
     gw2._stop.set()
     srv.shutdown()
@@ -213,7 +215,7 @@ def test_injection_after_cards_exist(stack):
     gw.mem.add("how do I configure X?",
                "check the config file first", 0.8)
     app = create_app(gw)
-    body = {"model": "m", "stream": False, "messages": [
+    body = {"model": "m-test", "stream": False, "messages": [
         {"role": "system", "content": "you are helpful"},
         {"role": "user", "content": "how do I configure X? please"}]}
     resp = _post(app, body)
@@ -231,7 +233,7 @@ def test_session_close_triggers_judge_and_writes_cards(stack):
     JudgeBackend.calls = 0
     app = create_app(gw)
     for i in range(4):
-        _post(app, {"model": "m", "stream": False, "messages": [
+        _post(app, {"model": "m-test", "stream": False, "messages": [
             {"role": "user", "content": "task %d about Y" % i}]})
     # explicit close (also exercised by the timeout reaper in production)
     from fastapi.testclient import TestClient
@@ -249,11 +251,11 @@ def test_session_close_triggers_judge_and_writes_cards(stack):
 def test_timeout_reaper_closes_idle_sessions(stack):
     gw, port = stack
     app = create_app(gw)
-    _post(app, {"model": "m", "stream": False, "messages": [
+    _post(app, {"model": "m-test", "stream": False, "messages": [
         {"role": "user", "content": "task about Z"}]})
-    _post(app, {"model": "m", "stream": False, "messages": [
+    _post(app, {"model": "m-test", "stream": False, "messages": [
         {"role": "user", "content": "task about Z again"}]})
-    _post(app, {"model": "m", "stream": False, "messages": [
+    _post(app, {"model": "m-test", "stream": False, "messages": [
         {"role": "user", "content": "task about Z third"}]})
     # wait past the 0.2s timeout + sweep
     time.sleep(0.6)
@@ -262,9 +264,10 @@ def test_timeout_reaper_closes_idle_sessions(stack):
 
 def test_upstream_error_returns_json_not_500(stack):
     gw, port = stack
-    gw.upstream = "http://127.0.0.1:1/v1"  # unreachable
+    # make the route point at an unreachable upstream
+    gw.route_table.routes["m-test"] = ("http://127.0.0.1:1/v1", "")
     app = create_app(gw)
-    body = {"model": "m", "stream": False,
+    body = {"model": "m-test", "stream": False,
             "messages": [{"role": "user", "content": "hi"}]}
     resp = _post(app, body)
     assert resp.status_code == 200

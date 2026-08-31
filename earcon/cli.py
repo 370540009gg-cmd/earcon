@@ -50,6 +50,14 @@ def build_parser():
                        help="seconds of inactivity before a session is "
                             "closed and judged (default 1800)")
     serve.add_argument("--inject-top-k", type=int, default=5)
+    serve.add_argument("--route", action="append", default=[],
+                       help="explicit model route 'model=url[:key]'; wins over "
+                            "client configs and the built-in table (repeatable)")
+    serve.add_argument("--routes-from", default="",
+                       help="comma-separated clients to read routes from: "
+                            "zcode,codex,hermes (reads their config files)")
+    serve.add_argument("--no-builtin-routes", action="store_true",
+                       help="disable the built-in public-cloud route table")
     return p
 
 
@@ -68,6 +76,9 @@ def main(argv=None):
                  judge_upstream=args.judge_upstream,
                  judge_api_key=args.judge_api_key,
                  upstream=args.upstream or None, api_key=args.api_key or None,
+                 routes=args.route,
+                 routes_from_clients=[s for s in args.routes_from.split(",") if s],
+                 use_builtin_routes=not args.no_builtin_routes,
                  inject=not args.no_inject, extra_body=extra,
                  config={"session_timeout": args.session_timeout,
                          "inject_top_k": args.inject_top_k})
@@ -75,7 +86,9 @@ def main(argv=None):
 
     import uvicorn
     print("earcon gateway: http://127.0.0.1:%d" % args.port)
-    print("work channel: pass-through (clients keep their own upstream+key)")
+    n = len(gw.route_table.routes) + len(gw.route_table.config_routes)
+    print("work channel: routed by model (%d routes loaded, builtin=%s)"
+          % (n, "on" if gw.route_table.use_builtin else "off"))
     print("judge channel: %s -> %s" % (args.judge_model, args.judge_upstream))
     print("memory: %s | mode: %s" % (args.db,
                                      "record+inject" if gw.inject else "record-only"))

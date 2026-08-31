@@ -49,16 +49,20 @@ JitRL loop:
 ```bash
 python3 -m pip install earcon
 
-# terminal 1: start the gateway. The ONLY thing you configure here is the
-# judge channel (it scores closed sessions, globally - regardless of which
-# model does the work). The work channel is pure pass-through: clients keep
-# their own upstream URL, key and model.
+# terminal 1: start the gateway. Configure two things:
+#   (a) the judge channel (configured once, scores every session
+#       regardless of which model does the work);
+#   (b) model routes - the gateway needs to know where each model lives.
+#       Easiest: let it read your existing client configs:
 earcon serve --judge-upstream https://api.deepseek.com/v1 \
-    --judge-api-key $DEEPSEEK_KEY --judge-model deepseek-chat
+    --judge-api-key $DEEPSEEK_KEY --judge-model deepseek-chat \
+    --routes-from zcode,codex,hermes
+#   or be explicit: --route 'deepseek-chat=https://api.deepseek.com/v1'
+#   priority: --route > client configs > built-in public-cloud table
 
 # terminal 2: any OpenAI app, one line changed
 #   OpenAI(base_url="http://127.0.0.1:8800/v1", ...)
-# (upstream URL and key stay wherever your app already has them)
+# (upstream URL, key and model all stay in your client's own settings)
 python examples/quickstart_client.py
 ```
 
