@@ -146,3 +146,15 @@ def test_timeout_reaper_closes_idle_sessions(stack):
     # wait past the 0.2s timeout + sweep
     time.sleep(0.6)
     assert gw.sessions == {}, "idle session was reaped"
+
+
+def test_upstream_error_returns_json_not_500(stack):
+    gw, port = stack
+    gw.upstream = "http://127.0.0.1:1/v1"  # unreachable
+    app = create_app(gw)
+    body = {"model": "m", "stream": False,
+            "messages": [{"role": "user", "content": "hi"}]}
+    resp = _post(app, body)
+    assert resp.status_code == 200
+    assert "error" in resp.json()
+    assert resp.json()["error"]["upstream_status"] == 502

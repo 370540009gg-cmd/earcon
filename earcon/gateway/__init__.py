@@ -21,6 +21,7 @@ import re
 import sqlite3
 import threading
 import time
+import urllib.error
 import urllib.request
 
 from fastapi import FastAPI, Request
@@ -237,7 +238,15 @@ class Gateway:
                    "Authorization": "Bearer " + upstream_key}
         req = urllib.request.Request(self.upstream + "/chat/completions",
                                      data=body_json, headers=headers)
-        up_resp = urllib.request.urlopen(req, timeout=300)
+        try:
+            up_resp = urllib.request.urlopen(req, timeout=300)
+        except urllib.error.HTTPError as e:
+            # surface upstream errors (4xx/5xx bodies) instead of a bare 500
+            detail = e.read().decode("utf-8", "replace")[:2000]
+            return {"error": {"upstream_status": e.code,
+                              "upstream_body": detail}}
+        except (urllib.error.URLError, OSError) as e:
+            return {"error": {"upstream_status": 502, "upstream_body": str(e)}}
 
         if stream:
             def gen():
