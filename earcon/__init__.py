@@ -7,4 +7,4 @@ adjudicated, and injected as context. See docs/how-it-works.md.
 Based on the mechanisms of JitRL (arXiv:2601.18510).
 """
 
-__version__ = "0.1.4"
+__version__ = "0.2.0"

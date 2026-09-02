@@ -51,7 +51,7 @@ pip install earcon
 
 屏幕会滚动安装进度，最后没报红色错误就是成功了。
 
-![四步上手图](./tutorial-steps.png)
+![当前架构](./current-architecture.png)
 
 > 💡 **报错了怎么办？** 最常见的是 `pip: command not found`——说明 Python 没装好或没加入 PATH。Mac 用户可以试试 `pip3 install earcon`（多个 3）；还不行就去搜"Python 安装教程"先补一下基础，10 分钟的事。
 >
