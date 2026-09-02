@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>earcon</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: rgba(255,255,255,0.82);
+    --border: rgba(0,0,0,0.06);
+    --text: #1d1d1f;
+    --text-2: rgba(29,31,32,0.55);
+    --text-3: rgba(29,31,32,0.32);
+    --accent: #0071e3;
+    --green: #30d158;
+    --red: #ff453a;
+    --radius: 18px;
+    --radius-s: 12px;
+    --blur: saturate(180%) blur(20px);
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.05);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+  html, body { scrollbar-width: none; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, "SF Pro Display", "SF Pro Text", "PingFang SC", sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(245,245,247,0.72);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 980px; margin: 0 auto; padding: 0 24px;
+    height: 52px; display: flex; align-items: center; gap: 16px;
+  }
+  .brand { font-size: 17px; font-weight: 600; letter-spacing: -0.2px; }
+  .brand em { font-style: normal; color: var(--accent); }
+  .top-state { display: flex; align-items: center; gap: 7px;
+    font-size: 13px; color: var(--text-2); }
+  .breath { width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+    animation: breath 3.2s ease-in-out infinite; }
+  @keyframes breath { 0%,100% { opacity: 1; transform: scale(1);} 50% { opacity: 0.4; transform: scale(0.82);} }
+  .topbar .flex { flex: 1; }
+  .mode { font-size: 12px; font-weight: 500; color: var(--accent);
+    background: rgba(0,113,227,0.08); border-radius: 999px; padding: 4px 12px; }
+  .mode.off { color: var(--text-3); background: rgba(29,31,32,0.05); }
+
+  main { max-width: 980px; margin: 0 auto; padding: 0 24px 80px; }
+
+  .hero { text-align: center; padding: 22px 0 16px; }
+  .hero h1 { font-size: 21px; font-weight: 400; letter-spacing: -0.3px; line-height: 1.3; color: var(--text-2); }
+  .hero h1 span {
+    font-size: 34px; font-weight: 700; letter-spacing: -1px; margin: 0 6px;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(180deg, #0071e3, #41a6ff);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .seg { display: flex; background: rgba(0,0,0,0.05); border-radius: 11px;
+    padding: 2px; width: fit-content; margin: 0 auto 18px; }
+  .seg button { border: none; background: transparent; cursor: pointer;
+    font-size: 14px; font-weight: 500; color: var(--text-2);
+    padding: 7px 22px; border-radius: 9px;
+    transition: all 0.25s cubic-bezier(0.25,0.1,0.25,1); font-family: inherit; }
+  .seg button.on { background: #fff; color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08); }
+
+  .view { display: none; animation: fadeUp 0.45s cubic-bezier(0.25,0.1,0.25,1); }
+  .view.on { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .metric { background: var(--card); backdrop-filter: var(--blur);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px 26px; box-shadow: var(--shadow);
+    transition: transform 0.3s cubic-bezier(0.25,0.1,0.25,1); }
+  .metric:hover { transform: translateY(-2px); }
+  .metric .v { font-size: 44px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; }
+  .metric .v small { font-size: 20px; font-weight: 500; color: var(--text-3); margin-left: 3px; }
+  .metric .l { font-size: 14px; color: var(--text-2); margin-top: 8px; font-weight: 500; }
+  .metric .hint { font-size: 12px; margin-top: 3px; color: var(--text-3); }
+
+  .live-banner { margin-top: 14px; display: none; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, rgba(48,209,88,0.10), rgba(48,209,88,0.04));
+    border: 1px solid rgba(48,209,88,0.18); border-radius: var(--radius); padding: 18px 22px; }
+  .live-banner.show { display: flex; }
+  .live-banner .breath { width: 9px; height: 9px; }
+  .live-banner .t { font-size: 15px; font-weight: 500; }
+  .live-banner .s { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+
+  .chart { margin-top: 14px; background: var(--card); backdrop-filter: var(--blur);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px 26px; box-shadow: var(--shadow); }
+  .chart h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .chart .sub { font-size: 13px; color: var(--text-2); margin-bottom: 20px; }
+
+  .dist { display: flex; align-items: flex-end; gap: 5px; height: 96px; }
+  .dist .b { flex: 1; border-radius: 6px 6px 3px 3px; min-height: 4px;
+    background: linear-gradient(180deg, rgba(0,113,227,0.9), rgba(0,113,227,0.55));
+    transition: height 0.6s cubic-bezier(0.25,0.1,0.25,1); position: relative; cursor: default; }
+  .dist .b.neg { background: linear-gradient(180deg, rgba(255,69,58,0.85), rgba(255,69,58,0.5)); }
+  .dist .b:hover::after { content: attr(data-n); position: absolute; top: -24px; left: 50%;
+    transform: translateX(-50%); font-size: 11px; font-weight: 600;
+    background: rgba(0,0,0,0.8); color: #fff; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+  .dist-axis { display: flex; justify-content: space-between; margin-top: 8px;
+    font-size: 11px; color: var(--text-3); font-weight: 500; }
+
+  .week { display: flex; align-items: flex-end; gap: 8px; height: 88px; }
+  .week .d { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .week .d .b { width: 100%; max-width: 34px; border-radius: 8px 8px 3px 3px; min-height: 4px;
+    background: linear-gradient(180deg, #64d2ff, #0071e3);
+    transition: height 0.6s cubic-bezier(0.25,0.1,0.25,1); }
+  .week .d span { font-size: 11px; color: var(--text-3); font-weight: 500; }
+  .week .d.today span { color: var(--accent); }
+
+  .search-wrap { position: relative; margin-bottom: 16px; }
+  .search-wrap input { width: 100%; font-size: 15px; padding: 12px 18px 12px 42px;
+    border: 1px solid var(--border); border-radius: var(--radius-s);
+    background: rgba(255,255,255,0.7); outline: none; color: var(--text);
+    transition: all 0.25s; font-family: inherit; }
+  .search-wrap input:focus { background: #fff; border-color: rgba(0,113,227,0.5);
+    box-shadow: 0 0 0 4px rgba(0,113,227,0.08); }
+  .search-wrap .icon { position: absolute; left: 15px; top: 50%;
+    transform: translateY(-50%); color: var(--text-3); font-size: 15px; pointer-events: none; }
+  .filters { display: flex; gap: 8px; margin-bottom: 18px; }
+  .filters button { border: none; cursor: pointer; font-size: 13px; font-weight: 500;
+    padding: 6px 16px; border-radius: 999px; font-family: inherit;
+    background: rgba(0,0,0,0.05); color: var(--text-2); transition: all 0.2s; }
+  .filters button.on { background: var(--text); color: #fff; }
+
+  .cards { display: flex; flex-direction: column; gap: 10px; }
+  .exp { background: var(--card); backdrop-filter: var(--blur);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 22px; box-shadow: var(--shadow);
+    display: flex; gap: 16px; align-items: center;
+    transition: transform 0.25s, opacity 0.25s; position: relative; overflow: hidden; }
+  .exp::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  .exp.positive::before { background: var(--green); }
+  .exp.negative::before { background: var(--red); }
+  .exp.pending::before { background: rgba(29,31,32,0.15); }
+  .exp .body { flex: 1; min-width: 0; }
+  .exp .task { font-size: 12px; color: var(--text-3); margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+  .exp .act { font-size: 15px; line-height: 1.45; }
+  .exp .score { font-size: 14px; font-weight: 600; min-width: 48px; text-align: right; }
+  .exp .score.p { color: var(--green); }
+  .exp .score.m { color: var(--red); }
+  .exp .score.z { color: var(--text-3); }
+  .exp .when { font-size: 12px; color: var(--text-3); min-width: 64px; text-align: right; }
+  .exp .rm { border: none; background: none; cursor: pointer; color: transparent;
+    font-size: 15px; padding: 8px; border-radius: 8px; transition: all 0.2s; line-height: 1; }
+  .exp:hover .rm { color: var(--text-3); }
+  .exp .rm:hover { color: var(--red); background: rgba(255,69,58,0.08); }
+  .exp.removing { opacity: 0; transform: translateX(24px) scale(0.98); }
+
+  .load-more { display: block; margin: 24px auto 0; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 500; color: var(--accent); background: none;
+    padding: 10px 28px; border-radius: 999px; font-family: inherit; transition: background 0.2s; }
+  .load-more:hover { background: rgba(0,113,227,0.06); }
+  .load-more:disabled { color: var(--text-3); cursor: default; background: none; }
+
+  .empty { text-align: center; padding: 80px 0; color: var(--text-3); }
+  .empty .big { font-size: 44px; margin-bottom: 12px; }
+  .empty p { font-size: 15px; }
+  .empty .hint { font-size: 13px; color: var(--text-3); margin-top: 6px; }
+
+  .sess { background: var(--card); backdrop-filter: var(--blur);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 22px; margin-bottom: 10px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 14px; }
+  .sess .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .sess .dot.live { background: var(--green); animation: breath 3.2s ease-in-out infinite; }
+  .sess .dot.done { background: var(--text-3); }
+  .sess .info { flex: 1; min-width: 0; }
+  .sess .name { font-size: 15px; font-weight: 600; }
+  .sess .meta { font-size: 13px; color: var(--text-2); margin-top: 3px; }
+  .sess .meta b { color: var(--text); font-weight: 600; }
+  .sess .badge { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 999px; }
+  .sess .badge.live { background: rgba(48,209,88,0.12); color: #1e9e42; }
+  .sess .badge.done { background: rgba(29,31,32,0.06); color: var(--text-2); }
+
+  /* ==== 会话详情：聊天气泡 ==== */
+  .trace {
+    background: var(--card); backdrop-filter: var(--blur);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin: 6px 0 14px 0; padding: 20px 22px 14px; display: none;
+    max-height: 520px; overflow-y: auto; box-shadow: var(--shadow);
+  }
+  .trace::-webkit-scrollbar { width: 4px; }
+  .trace::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+  .round { margin-bottom: 16px; }
+  .round:last-child { margin-bottom: 4px; }
+  .round-label {
+    font-size: 10px; font-weight: 700; color: var(--text-3);
+    letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;
+  }
+  .bubble {
+    max-width: 80%; padding: 10px 14px; border-radius: 16px;
+    font-size: 13px; line-height: 1.55; margin-bottom: 5px;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .bubble.user {
+    background: var(--accent); color: #fff;
+    margin-left: auto; border-bottom-right-radius: 4px;
+  }
+  .bubble.ai {
+    background: rgba(0,0,0,0.055); color: var(--text);
+    margin-right: auto; border-bottom-left-radius: 4px;
+  }
+  .trace .end-bar {
+    display: flex; justify-content: center; gap: 14px;
+    padding: 10px 0 0; margin-top: 10px; border-top: 1px solid var(--border);
+    font-size: 11.5px; color: var(--text-3); font-weight: 500;
+  }
+  .no-content {
+    font-size: 13px; color: var(--text-2); padding: 14px 0; text-align: center;
+  }
+
+  .footnote { text-align: center; margin-top: 48px; font-size: 12px; color: var(--text-3); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">ear<em>con</em></div>
+    <div class="top-state"><div class="breath"></div>网关运行中</div>
+    <div class="flex"></div>
+    <div class="mode" id="modeBadge">学习已开启</div>
+    <div class="mode" id="debugBtn" style="cursor:pointer;background:rgba(255,150,0,0.1);color:#f90">调试</div>
+  </div>
+</div>
+
+<main>
+  <div class="hero">
+    <h1>今日新学 <span id="heroToday">—</span> 条经验</h1>
+  </div>
+
+  <div class="seg">
+    <button class="on" data-v="overview">总览</button>
+    <button data-v="cards">卡片库</button>
+    <button data-v="sessions">会话</button>
+  </div>
+
+  <section class="view on" id="overview">
+    <div class="metrics">
+      <div class="metric">
+        <div class="v" id="mTotal">—<small>条</small></div>
+        <div class="l">经验总数</div>
+        <div class="hint">每次会话学习沉淀</div>
+      </div>
+      <div class="metric">
+        <div class="v" style="color:var(--green)" id="mPos">—<small>条</small></div>
+        <div class="l">正向经验</div>
+        <div class="hint" id="mPosHint">会注入到未来的对话</div>
+      </div>
+      <div class="metric">
+        <div class="v" style="color:var(--red)" id="mNeg">—<small>条</small></div>
+        <div class="l">负向经验</div>
+        <div class="hint">帮助 AI 避开同类错误</div>
+      </div>
+    </div>
+
+    <div class="live-banner" id="liveBanner">
+      <div class="breath"></div>
+      <div>
+        <div class="t" id="liveTitle">正在学习进行中的会话</div>
+        <div class="s">结束后裁判将复盘对话，提炼新的经验</div>
+      </div>
+    </div>
+
+    <div class="chart">
+      <h3>裁判打分分布</h3>
+      <div class="sub">AI 的每个关键决策被评 −1 到 +1 分，越靠右越值得复用</div>
+      <div class="dist" id="dist"></div>
+      <div class="dist-axis"><span>−1.0 应当避开</span><span>0</span><span>+1.0 值得复用</span></div>
+    </div>
+
+    <div class="chart">
+      <h3>学习节奏</h3>
+      <div class="sub">每天新增的经验卡片</div>
+      <div class="week" id="week"></div>
+    </div>
+  </section>
+
+  <section class="view" id="cards">
+    <div class="search-wrap">
+      <span class="icon">⌕</span>
+      <input type="text" placeholder="搜索经验内容" id="q">
+    </div>
+    <div class="filters" id="filters">
+      <button class="on" data-f="">全部 <span id="fAll">—</span></button>
+      <button data-f="positive">正向 <span id="fPos">—</span></button>
+      <button data-f="negative">负向 <span id="fNeg">—</span></button>
+      <button data-f="pending">待观察 <span id="fPen">—</span></button>
+    </div>
+    <div class="cards" id="cardList"></div>
+    <button class="load-more" id="loadMore">显示更早的经验</button>
+  </section>
+
+  <section class="view" id="sessions">
+    <div id="sessList"></div>
+    <div class="footnote" id="sessFoot">会话结束 30 分钟后自动开始学习</div>
+  </section>
+
+  <div class="footnote">earcon 客户端 · 数据来自本地网关 · 每 3 秒自动刷新</div>
+</main>
+
+<script>
+/* ================= 全局错误捕获 ================= */
+window.onerror = function(msg, url, line, col) {
+  try {
+    const logs = JSON.parse(localStorage.getItem("earcon_debug") || "[]");
+    logs.push("ERROR: " + msg + " @" + line + ":" + col);
+    localStorage.setItem("earcon_debug", JSON.stringify(logs.slice(-50)));
+  } catch(e) {}
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  try {
+    const logs = JSON.parse(localStorage.getItem("earcon_debug") || "[]");
+    logs.push("REJECT: " + String(e.reason).slice(0, 100));
+    localStorage.setItem("earcon_debug", JSON.stringify(logs.slice(-50)));
+  } catch(err) {}
+});
+
+/* ================= 数据桥：网关 API ================= */
+const API_BASE = "/v1/earcon";
+function hasBridge() { return typeof pywebview !== "undefined" && pywebview.api; }
+
+async function api(path) {
+  if (hasBridge()) return null; // bridge handles these calls separately
+  const r = await fetch(API_BASE + path);
+  return r.json();
+}
+
+async function fetchStats()  { return hasBridge() ? pywebview.api.fetch_stats()  : api("/ui/stats"); }
+async function fetchCards(offset, limit, q, tag) {
+  return hasBridge() ? pywebview.api.fetch_cards(offset, limit, q, tag)
+                    : api("/ui/cards?offset=" + offset + "&limit=" + limit +
+                          "&q=" + encodeURIComponent(q) + "&tag=" + tag);
+}
+async function fetchSessions(){ return hasBridge() ? pywebview.api.fetch_sessions() : api("/ui/sessions"); }
+async function deleteCard(id){
+  if (hasBridge()) return pywebview.api.delete_card(id);
+  const r = await fetch(API_BASE + "/ui/cards/" + id, { method: "DELETE" });
+  return r.json();
+}
+
+/* ================= 视图切换 ================= */
+document.querySelectorAll(".seg button").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".seg button").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+    document.getElementById(b.dataset.v).classList.add("on");
+  };
+});
+
+/* ================= 工具 ================= */
+function esc(s) { return String(s || "").replace(/[&<>"']/g, m =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m])); }
+function relTime(ts) {
+  const s = Math.floor(Date.now() / 1000 - ts);
+  if (s < 60) return "刚刚";
+  if (s < 3600) return Math.floor(s / 60) + " 分钟前";
+  if (s < 86400) return Math.floor(s / 3600) + " 小时前";
+  if (s < 86400 * 7) return Math.floor(s / 86400) + " 天前";
+  return new Date(ts * 1000).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+}
+function clsOf(g) { return g > 0.15 ? "positive" : g < -0.15 ? "negative" : "pending"; }
+function tagOf(c) { return c === "positive" ? "正向经验" : c === "negative" ? "负向经验" : "待观察"; }
+
+/* ================= 总览渲染 ================= */
+function renderStats(st) {
+  if (!st || st.total === undefined) return;
+  document.getElementById("heroToday").textContent = st.today;
+  document.getElementById("mTotal").innerHTML = st.total + "<small>条</small>";
+  document.getElementById("mPos").innerHTML = st.positive + "<small>条</small>";
+  document.getElementById("mNeg").innerHTML = st.negative + "<small>条</small>";
+  if (st.total > 0) {
+    document.getElementById("mPosHint").textContent =
+      Math.round(st.positive / st.total * 100) + "% · 会注入到未来的对话";
+  }
+  document.getElementById("fAll").textContent = st.total;
+  document.getElementById("fPos").textContent = st.positive;
+  document.getElementById("fNeg").textContent = st.negative;
+  document.getElementById("fPen").textContent = st.pending;
+
+  const dist = document.getElementById("dist");
+  dist.innerHTML = "";
+  const mx = Math.max(1, ...st.histogram);
+  st.histogram.forEach((n, i) => {
+    const b = document.createElement("div");
+    b.className = "b" + (i < 5 ? " neg" : "");
+    b.style.height = Math.max(4, n / mx * 96) + "px";
+    b.dataset.n = n + " 条";
+    dist.appendChild(b);
+  });
+
+  const week = document.getElementById("week");
+  week.innerHTML = "";
+  const wmx = Math.max(1, ...st.daily.map(d => d.count));
+  st.daily.forEach((d, i) => {
+    const wrap = document.createElement("div");
+    wrap.className = "d" + (i === st.daily.length - 1 ? " today" : "");
+    const b = document.createElement("div");
+    b.className = "b";
+    b.style.height = Math.max(4, d.count / wmx * 84) + "px";
+    const s = document.createElement("span");
+    const dt = new Date(d.date + "T00:00:00");
+    s.textContent = (dt.getMonth() + 1) + "月" + dt.getDate() + "日";
+    wrap.appendChild(b); wrap.appendChild(s);
+    week.appendChild(wrap);
+  });
+}
+
+/* ================= 卡片库渲染 ================= */
+let curTag = "", curQ = "", offset = 0, totalCount = 0;
+const PAGE = 50;
+
+async function loadCards(reset) {
+  try {
+    if (reset) { offset = 0; document.getElementById("cardList").innerHTML = ""; }
+    const data = await fetchCards(offset, PAGE, curQ, curTag);
+  const log = (msg) => { console.log(msg); try { const l = JSON.parse(localStorage.getItem("earcon_debug")||"[]"); l.push(Date.now()+": "+msg); localStorage.setItem("earcon_debug", JSON.stringify(l.slice(-50))); } catch(e){} };
+  log("loadCards got data: " + JSON.stringify(data).slice(0, 200));
+  if (!data) { log("loadCards: data is null"); return; }
+  const cards = data.cards || [];
+  totalCount = data.total || 0;
+  const el = document.getElementById("cardList");
+  if (reset && !cards.length) {
+    el.innerHTML = '<div class="empty"><div class="big">🌱</div><p>还没有经验卡片</p>' +
+      '<p class="hint">去正常工作几轮，回到这里就能看到学到的东西</p></div>';
+    document.getElementById("loadMore").disabled = true;
+    return;
+  }
+  cards.forEach(c => {
+    const d = document.createElement("div");
+    d.className = "exp " + clsOf(c.G);
+    d.innerHTML = `
+      <div class="body">
+        <div class="task">${tagOf(clsOf(c.G))} · 来自「${esc(c.title || c.task)}」</div>
+        <div class="act">${esc(c.action)}</div>
+      </div>
+      <div class="score ${c.G > 0.15 ? "p" : c.G < -0.15 ? "m" : "z"}">${c.G > 0 ? "+" : ""}${c.G.toFixed(1)}</div>
+      <div class="when">${relTime(c.created)}</div>
+      <button class="rm" title="删除">✕</button>`;
+    d.querySelector(".rm").onclick = async () => {
+      d.classList.add("removing");
+      await deleteCard(c.id);
+      setTimeout(() => { d.remove(); offset--; }, 250);
+    };
+    el.appendChild(d);
+  });
+  offset += cards.length;
+  document.getElementById("loadMore").disabled = offset >= totalCount;
+  document.getElementById("loadMore").textContent =
+    offset >= totalCount ? "已全部显示" : "显示更早的经验";
+  } catch (e) {
+    console.error("loadCards error:", e);
+    const el = document.getElementById("cardList");
+    el.innerHTML = '<div class="empty"><div class="big">⚠️</div><p>加载失败</p>' +
+      '<p class="hint">' + esc(String(e)) + '</p></div>';
+  }
+}
+
+document.getElementById("filters").addEventListener("click", e => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  document.querySelectorAll("#filters button").forEach(x => x.classList.remove("on"));
+  btn.classList.add("on");
+  curTag = btn.dataset.f;
+  loadCards(true);
+});
+let deb;
+document.getElementById("q").oninput = e => {
+  clearTimeout(deb);
+  deb = setTimeout(() => { curQ = e.target.value.trim(); loadCards(true); }, 250);
+};
+document.getElementById("loadMore").onclick = () => loadCards(false);
+
+/* ================= 会话渲染 ================= */
+let _lastSessKey = "";
+function renderSessions(s, expanded) {
+  expanded = expanded || new Set();
+  if (!s) return;
+  // skip re-render if nothing changed (prevents collapse on poll)
+  const key = JSON.stringify([
+    (s.live || []).map(x => [x.sid, x.turns]),
+    (s.closed || []).map(x => [x.sid, x.turns, x.cards])
+  ]);
+  if (key === _lastSessKey) return;
+  _lastSessKey = key;
+  const el = document.getElementById("sessList");
+  const live = s.live || [];
+  const closed = s.closed || [];
+  el.innerHTML = "";
+  if (!live.length && !closed.length) {
+    el.innerHTML = '<div class="empty"><div class="big">💬</div><p>暂无会话</p>' +
+      '<p class="hint">开始一次对话后，这里会显示学习过程</p></div>';
+    return;
+  }
+  live.forEach(x => {
+    el.appendChild(sessCard({
+      name: x.title || x.sid, live: true, turns: x.turns,
+      meta: x.turns + " 轮对话 · 最近活动 " + relTime(x.last),
+    }, x.preview || null));
+  });
+  closed.forEach(x => {
+    el.appendChild(sessCard({
+      name: x.title || x.sid, live: false, turns: x.turns,
+      meta: x.turns + " 轮对话 · " + relTime(x.closed_at) +
+            (x.cards > 0 ? " · 学到 <b>" + x.cards + "</b> 条经验" : " · 无新经验"),
+      cards: x.cards,
+    }, x.preview || null));
+  });
+  const banner = document.getElementById("liveBanner");
+  if (live.length) {
+    banner.classList.add("show");
+    document.getElementById("liveTitle").textContent =
+      "正在学习 " + live.length + " 个进行中的会话";
+  } else {
+    banner.classList.remove("show");
+  }
+}
+
+function sessCard(s, preview, wasExpanded) {
+  const d = document.createElement("div");
+  d.className = "sess";
+  d.innerHTML = `
+    <div class="dot ${s.live ? "live" : "done"}"></div>
+    <div class="info">
+      <div class="name">${esc(s.name)}</div>
+      <div class="meta">${s.meta}</div>
+    </div>
+    <div class="badge ${s.live ? "live" : "done"}">${s.live ? "学习中" : "已学习"}</div>`;
+  if (preview && preview.length) {
+    d.style.cursor = "pointer";
+    d.title = "点击展开/收起对话内容";
+    d.onclick = () => {
+      const existing = d.nextElementSibling;
+      if (existing && existing.classList.contains("trace")) {
+        existing.remove();
+        return;
+      }
+      const tr = document.createElement("div");
+      tr.className = "trace open";
+      // backend sends [{user, assistant}] pairs, one per round
+      const rounds = preview
+        .filter(t => t.user && t.user !== "(系统消息)")
+        .map(t => ({ user: t.user, assistant: t.assistant || "" }));
+      tr.innerHTML = rounds.map((r, i) => `
+        <div class="round">
+          <div class="round-label">第 ${i + 1} 轮</div>
+          <div class="bubble user">${esc(r.user)}</div>
+          ${r.assistant ? `<div class="bubble ai">${esc(r.assistant)}</div>` : ""}
+        </div>`).join("") +
+        `<div class="end-bar"><span>共 ${s.turns} 轮对话</span><span>·</span><span>点击会话卡片收起</span></div>`;
+      d.after(tr);
+    };
+  } else if (s.live) {
+    d.style.cursor = "pointer";
+    d.onclick = () => {
+      const existing = d.nextElementSibling;
+      if (existing && existing.classList.contains("trace")) {
+        existing.remove();
+        return;
+      }
+      const tr = document.createElement("div");
+      tr.className = "trace open";
+      tr.innerHTML = `<div style="font-size:13px;color:var(--text-2);padding:8px 0">
+        已积累 ${s.turns || 0} 轮对话 · 会话结束后裁判将提炼经验</div>`;
+      d.after(tr);
+    };
+  }
+  return d;
+}
+
+/* ================= 轮询 ================= */
+async function tick() {
+  try {
+    const st = await fetchStats();
+    if (st) {
+      renderStats(st);
+      if (typeof st.inject !== "undefined") {
+        const mb = document.getElementById("modeBadge");
+        mb.textContent = st.inject ? "学习已开启" : "仅记录（未注入）";
+        mb.classList.toggle("off", !st.inject);
+      }
+    }
+    const sessData = await fetchSessions();
+    // preserve expanded state across polls
+    const expanded = new Set();
+    document.querySelectorAll(".trace.open").forEach(t => {
+      const sid = t.dataset.sid;
+      if (sid) expanded.add(sid);
+    });
+    renderSessions(sessData, expanded);
+  } catch (e) { /* 网关暂不可达，下轮再试 */ }
+}
+
+// wait for pywebview bridge before loading data
+function initApp() {
+  const log = (msg) => {
+    console.log(msg);
+    try {
+      const logs = JSON.parse(localStorage.getItem("earcon_debug") || "[]");
+      logs.push(Date.now() + ": " + msg);
+      localStorage.setItem("earcon_debug", JSON.stringify(logs.slice(-50)));
+    } catch(e) {}
+  };
+  log("initApp called, hasBridge=" + hasBridge() + ", pywebview=" + (typeof pywebview));
+  loadCards(true);
+  tick();
+  setInterval(tick, 3000);
+}
+if (typeof pywebview !== "undefined" && pywebview.api) {
+  initApp();
+} else {
+  window.addEventListener("pywebviewready", initApp);
+  // fallback: if no bridge after 3s, try anyway (browser mode)
+  setTimeout(() => { if (!document.getElementById("cardList").children.length) initApp(); }, 3000);
+  // debug button shows logs
+  document.getElementById("debugBtn").onclick = () => {
+    const logs = JSON.parse(localStorage.getItem("earcon_debug") || "[]");
+    const el = document.getElementById("cardList");
+    el.innerHTML = '<div style="padding:20px;background:#fff3cd;border-radius:8px;font-size:12px;font-family:monospace;white-space:pre-wrap">' +
+      logs.join("\n") + '</div>';
+  };
+}
+</script>
+
+</body>
+</html>

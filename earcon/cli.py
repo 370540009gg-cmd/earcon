@@ -72,6 +72,8 @@ def main(argv=None):
 
     # local imports so the core library never requires fastapi
     from earcon.gateway import Gateway, create_app
+    # set before Gateway reads it for route self-filtering
+    os.environ["EARCON_PORT"] = str(args.port)
     gw = Gateway(judge_model=args.judge_model, db_path=args.db,
                  judge_upstream=args.judge_upstream,
                  judge_api_key=args.judge_api_key,

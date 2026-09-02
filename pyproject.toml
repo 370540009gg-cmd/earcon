@@ -29,6 +29,7 @@ dependencies = [
 
 [project.optional-dependencies]
 openai = ["openai>=1.0"]
+desktop = ["pywebview>=5.0"]
 dev = ["pytest>=7.0"]
 
 [project.scripts]
@@ -36,3 +37,6 @@ earcon = "earcon.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["earcon*"]
+
+[tool.setuptools.package-data]
+"earcon.gateway" = ["static/*"]

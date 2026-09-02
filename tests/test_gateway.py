@@ -232,9 +232,12 @@ def test_session_close_triggers_judge_and_writes_cards(stack):
     gw, port = stack
     JudgeBackend.calls = 0
     app = create_app(gw)
+    # same conversation: history grows each turn (ZCode/Codex behavior)
+    msgs = []
     for i in range(4):
-        _post(app, {"model": "m-test", "stream": False, "messages": [
-            {"role": "user", "content": "task %d about Y" % i}]})
+        msgs.append({"role": "user", "content": "task turn %d" % i})
+        _post(app, {"model": "m-test", "stream": False, "messages": msgs[:]})
+        msgs.append({"role": "assistant", "content": "ok"})
     # explicit close (also exercised by the timeout reaper in production)
     from fastapi.testclient import TestClient
     with TestClient(app) as c:

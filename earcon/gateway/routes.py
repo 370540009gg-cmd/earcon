@@ -47,8 +47,11 @@ def _builtin_guess(model, key):
     return None
 
 
-def _read_zcode(path=None):
-    """~/.zcode/v2/config.json -> provider map."""
+def _read_zcode(path=None, exclude_self_port=None):
+    """~/.zcode/v2/config.json -> provider map.
+
+    exclude_self_port: filter out providers pointing at the earcon gateway
+    itself (localhost loopback) to avoid routing loops."""
     p = path or os.path.expanduser("~/.zcode/v2/config.json")
     try:
         d = json.load(open(p))
@@ -59,6 +62,9 @@ def _read_zcode(path=None):
         base = (prov.get("options") or {}).get("baseURL")
         key = (prov.get("options") or {}).get("apiKey", "")
         if not base:
+            continue
+        # skip self-referential routes (earcon proxying to itself)
+        if exclude_self_port and ("127.0.0.1:%s" % exclude_self_port) in base:
             continue
         for model in (prov.get("models") or {}):
             routes[model] = (base, key)
@@ -117,14 +123,20 @@ CLIENT_READERS = {"zcode": _read_zcode, "codex": _read_codex,
 class RouteTable:
     """model -> (upstream_url, key). Three tiers: explicit > config > builtin."""
 
-    def __init__(self, routes=None, routes_from_clients=None, use_builtin=True):
+    def __init__(self, routes=None, routes_from_clients=None, use_builtin=True,
+                 self_port=None):
         self.routes = {}          # explicit --route entries
         self.config_routes = {}   # read from client configs
         self.use_builtin = use_builtin
         for name in (routes_from_clients or []):
             reader = CLIENT_READERS.get(name)
             if reader:
-                self.config_routes.update(reader())
+                try:
+                    self.config_routes.update(
+                        reader(exclude_self_port=self_port)
+                        if name == "zcode" else reader())
+                except TypeError:  # reader doesn't accept the param
+                    self.config_routes.update(reader())
         for entry in (routes or []):
             self.add_route(entry)
 

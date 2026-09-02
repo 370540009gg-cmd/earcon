@@ -18,3 +18,5 @@ dist/
 .idea/
 .vscode/
 .pytest_cache/
+earcon_memory.db*
+gateway.log

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>earcon</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: rgba(255,255,255,0.82);
+    --border: rgba(0,0,0,0.06);
+    --text: #1d1d1f;
+    --text-2: rgba(29,31,32,0.55);
+    --text-3: rgba(29,31,32,0.32);
+    --accent: #0071e3;
+    --green: #30d158;
+    --red: #ff453a;
+    --amber: #ffd60a;
+    --radius: 18px;
+    --radius-s: 12px;
+    --blur: saturate(180%) blur(20px);
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.05);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, "SF Pro Display", "SF Pro Text", "PingFang SC", sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ============ 顶栏：毛玻璃，苹果导航栏质感 ============ */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(245,245,247,0.72);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 980px; margin: 0 auto; padding: 0 24px;
+    height: 52px; display: flex; align-items: center; gap: 16px;
+  }
+  .brand { font-size: 17px; font-weight: 600; letter-spacing: -0.2px; }
+  .brand em { font-style: normal; color: var(--accent); }
+  .top-state {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 13px; color: var(--text-2); font-weight: 400;
+  }
+  .breath {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+    animation: breath 3.2s ease-in-out infinite;
+  }
+  @keyframes breath {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.82); }
+  }
+  .topbar .flex { flex: 1; }
+  .mode {
+    font-size: 12px; font-weight: 500; color: var(--accent);
+    background: rgba(0,113,227,0.08); border-radius: 999px; padding: 4px 12px;
+  }
+
+  /* ============ 主体：居中窄栏，苹果产品页节奏 ============ */
+  main { max-width: 980px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* 大标题区：一句话告诉用户发生了什么 */
+  .hero { text-align: center; padding: 56px 0 40px; }
+  .hero h1 {
+    font-size: 40px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.15;
+  }
+  .hero h1 span { background: linear-gradient(90deg, #0071e3, #64d2ff);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { margin-top: 12px; font-size: 17px; color: var(--text-2); font-weight: 400; }
+  .hero .learned-today { color: var(--text); font-weight: 500; }
+
+  /* ============ 分段控制器（苹果 segmented control）============ */
+  .seg {
+    display: flex; background: rgba(0,0,0,0.05); border-radius: 11px;
+    padding: 2px; width: fit-content; margin: 0 auto 32px;
+  }
+  .seg button {
+    border: none; background: transparent; cursor: pointer;
+    font-size: 14px; font-weight: 500; color: var(--text-2);
+    padding: 7px 22px; border-radius: 9px;
+    transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  .seg button.on {
+    background: #fff; color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+  }
+
+  .view { display: none; animation: fadeUp 0.45s cubic-bezier(0.25,0.1,0.25,1); }
+  .view.on { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ 总览：大数字卡片 ============ */
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .metric {
+    background: var(--card); backdrop-filter: var(--blur);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px 26px; box-shadow: var(--shadow);
+    transition: transform 0.3s cubic-bezier(0.25,0.1,0.25,1);
+  }
+  .metric:hover { transform: translateY(-2px); }
+  .metric .v { font-size: 44px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; }
+  .metric .v small { font-size: 20px; font-weight: 500; color: var(--text-3); margin-left: 3px; }
+  .metric .l { font-size: 14px; color: var(--text-2); margin-top: 8px; font-weight: 500; }
+  .metric.good .v { color: var(--text); }
+  .metric.bad .v { color: var(--text); }
+  .metric .hint { font-size: 12px; margin-top: 3px; color: var(--text-3); }
+
+  /* 学习中横幅：当有活跃会话时展示，呼吸感 */
+  .live-banner {
+    margin-top: 14px; display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, rgba(48,209,88,0.10), rgba(48,209,88,0.04));
+    border: 1px solid rgba(48,209,88,0.18); border-radius: var(--radius);
+    padding: 18px 22px;
+  }
+  .live-banner .breath { width: 9px; height: 9px; }
+  .live-banner .t { font-size: 15px; font-weight: 500; }
+  .live-banner .s { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+
+  /* 图表卡 */
+  .chart {
+    margin-top: 14px; background: var(--card); backdrop-filter: var(--blur);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px 26px; box-shadow: var(--shadow);
+  }
+  .chart h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .chart .sub { font-size: 13px; color: var(--text-2); margin-bottom: 20px; }
+
+  /* 分数分布：渐变条形 */
+  .dist { display: flex; align-items: flex-end; gap: 5px; height: 96px; }
+  .dist .b {
+    flex: 1; border-radius: 6px 6px 3px 3px; min-height: 4px;
+    background: linear-gradient(180deg, rgba(0,113,227,0.9), rgba(0,113,227,0.55));
+    transition: height 0.6s cubic-bezier(0.25,0.1,0.25,1);
+    position: relative; cursor: default;
+  }
+  .dist .b.neg { background: linear-gradient(180deg, rgba(255,69,58,0.85), rgba(255,69,58,0.5)); }
+  .dist .b:hover::after {
+    content: attr(data-n); position: absolute; top: -24px; left: 50%;
+    transform: translateX(-50%); font-size: 11px; font-weight: 600;
+    background: rgba(0,0,0,0.8); color: #fff; padding: 2px 8px; border-radius: 6px;
+    white-space: nowrap;
+  }
+  .dist-axis { display: flex; justify-content: space-between; margin-top: 8px;
+    font-size: 11px; color: var(--text-3); font-weight: 500; }
+
+  /* 7 天活动 */
+  .week { display: flex; align-items: flex-end; gap: 8px; height: 88px; }
+  .week .d { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .week .d .b {
+    width: 100%; max-width: 34px; border-radius: 8px 8px 3px 3px; min-height: 4px;
+    background: linear-gradient(180deg, #64d2ff, #0071e3);
+    transition: height 0.6s cubic-bezier(0.25,0.1,0.25,1);
+  }
+  .week .d span { font-size: 11px; color: var(--text-3); font-weight: 500; }
+  .week .d.today span { color: var(--accent); }
+
+  /* ============ 卡片库：极简列表 ============ */
+  .search-wrap { position: relative; margin-bottom: 16px; }
+  .search-wrap input {
+    width: 100%; font-size: 15px; padding: 12px 18px 12px 42px;
+    border: 1px solid var(--border); border-radius: var(--radius-s);
+    background: rgba(255,255,255,0.7); outline: none; color: var(--text);
+    transition: all 0.25s; font-family: inherit;
+  }
+  .search-wrap input:focus {
+    background: #fff; border-color: rgba(0,113,227,0.5);
+    box-shadow: 0 0 0 4px rgba(0,113,227,0.08);
+  }
+  .search-wrap .icon {
+    position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+    color: var(--text-3); font-size: 15px; pointer-events: none;
+  }
+  .filters { display: flex; gap: 8px; margin-bottom: 18px; }
+  .filters button {
+    border: none; cursor: pointer; font-size: 13px; font-weight: 500;
+    padding: 6px 16px; border-radius: 999px; font-family: inherit;
+    background: rgba(0,0,0,0.05); color: var(--text-2);
+    transition: all 0.2s;
+  }
+  .filters button.on { background: var(--text); color: #fff; }
+
+  .cards { display: flex; flex-direction: column; gap: 10px; }
+  .exp {
+    background: var(--card); backdrop-filter: var(--blur);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 22px; box-shadow: var(--shadow);
+    display: flex; gap: 16px; align-items: center;
+    transition: transform 0.25s, opacity 0.25s;
+    position: relative; overflow: hidden;
+  }
+  .exp::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  }
+  .exp.g::before { background: var(--green); }
+  .exp.r::before { background: var(--red); }
+  .exp.n::before { background: rgba(29,31,32,0.15); }
+  .exp .body { flex: 1; min-width: 0; }
+  .exp .task {
+    font-size: 12px; color: var(--text-3); margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;
+  }
+  .exp .act { font-size: 15px; line-height: 1.45; font-weight: 400; }
+  .exp .score { font-size: 14px; font-weight: 600; min-width: 48px; text-align: right; }
+  .exp .score.p { color: var(--green); }
+  .exp .score.m { color: var(--red); }
+  .exp .score.z { color: var(--text-3); }
+  .exp .when { font-size: 12px; color: var(--text-3); min-width: 64px; text-align: right; }
+  .exp .rm {
+    border: none; background: none; cursor: pointer;
+    color: transparent; font-size: 15px; padding: 8px 8px; border-radius: 8px;
+    transition: all 0.2s; line-height: 1;
+  }
+  .exp:hover .rm { color: var(--text-3); }
+  .exp .rm:hover { color: var(--red); background: rgba(255,69,58,0.08); }
+  .exp.removing { opacity: 0; transform: translateX(24px) scale(0.98); }
+
+  .load-more {
+    display: block; margin: 24px auto 0; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 500; color: var(--accent);
+    background: none; padding: 10px 28px; border-radius: 999px;
+    font-family: inherit; transition: background 0.2s;
+  }
+  .load-more:hover { background: rgba(0,113,227,0.06); }
+
+  .empty {
+    text-align: center; padding: 80px 0; color: var(--text-3);
+  }
+  .empty .big { font-size: 44px; margin-bottom: 12px; }
+  .empty p { font-size: 15px; }
+
+  /* ============ 会话 ============ */
+  .sess {
+    background: var(--card); backdrop-filter: var(--blur);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 22px; margin-bottom: 10px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer; transition: transform 0.25s;
+  }
+  .sess:hover { transform: translateY(-1px); }
+  .sess .dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .sess .dot.live { background: var(--green); animation: breath 3.2s ease-in-out infinite; }
+  .sess .dot.done { background: var(--text-3); }
+  .sess .info { flex: 1; min-width: 0; }
+  .sess .name { font-size: 15px; font-weight: 600; }
+  .sess .meta { font-size: 13px; color: var(--text-2); margin-top: 3px; }
+  .sess .meta b { color: var(--text); font-weight: 600; }
+  .sess .badge {
+    font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 999px;
+  }
+  .sess .badge.live { background: rgba(48,209,88,0.12); color: #1e9e42; }
+  .sess .badge.done { background: rgba(29,31,32,0.06); color: var(--text-2); }
+
+  /* 展开轨迹 */
+  .trace {
+    background: #fff; border: 1px solid var(--border); border-radius: var(--radius-s);
+    margin: -4px 0 10px 46px; padding: 16px 20px; display: none;
+    font-size: 14px; line-height: 1.6;
+  }
+  .trace.open { display: block; animation: fadeUp 0.3s; }
+  .trace .t { display: flex; gap: 12px; margin-bottom: 10px; }
+  .trace .who {
+    font-size: 11px; font-weight: 600; flex-shrink: 0; width: 40px;
+    padding-top: 3px; letter-spacing: 0.3px;
+  }
+  .trace .u .who { color: var(--accent); }
+  .trace .a .who { color: var(--text-3); }
+  .trace .txt { color: var(--text-2); }
+  .trace .u .txt { color: var(--text); }
+
+  .footnote {
+    text-align: center; margin-top: 48px; font-size: 12px; color: var(--text-3);
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">ear<em>con</em></div>
+    <div class="top-state"><div class="breath"></div>网关运行中</div>
+    <div class="flex"></div>
+    <div class="mode">学习已开启</div>
+  </div>
+</div>
+
+<main>
+
+  <div class="hero">
+    <h1>今天，AI 又为你<br><span>沉淀了 14 条经验</span></h1>
+    <p>它记住了什么 · 学对了什么 · 下次怎么做得更好</p>
+  </div>
+
+  <div class="seg">
+    <button class="on" data-v="overview">总览</button>
+    <button data-v="cards">卡片库</button>
+    <button data-v="sessions">会话</button>
+  </div>
+
+  <!-- ============ 总览 ============ -->
+  <section class="view on" id="overview">
+    <div class="metrics">
+      <div class="metric good">
+        <div class="v">128<small>条</small></div>
+        <div class="l">经验总数</div>
+        <div class="hint">从 8 月 28 日开始学习</div>
+      </div>
+      <div class="metric good">
+        <div class="v" style="color:var(--green)">87<small>条</small></div>
+        <div class="l">有效经验</div>
+        <div class="hint">68% · 会注入到未来的对话</div>
+      </div>
+      <div class="metric bad">
+        <div class="v" style="color:var(--red)">23<small>条</small></div>
+        <div class="l">失败教训</div>
+        <div class="hint">帮助 AI 避开同样的坑</div>
+      </div>
+    </div>
+
+    <div class="live-banner">
+      <div class="breath"></div>
+      <div>
+        <div class="t">正在学习 2 个进行中的会话</div>
+        <div class="s">结束后裁判将复盘对话，提炼新的经验</div>
+      </div>
+    </div>
+
+    <div class="chart">
+      <h3>裁判打分分布</h3>
+      <div class="sub">AI 的每个关键决策被评 −1 到 +1 分，越靠右越有效</div>
+      <div class="dist" id="dist"></div>
+      <div class="dist-axis"><span>−1.0 总是帮倒忙</span><span>0</span><span>+1.0 总是有效</span></div>
+    </div>
+
+    <div class="chart">
+      <h3>学习节奏</h3>
+      <div class="sub">每天新增的经验卡片</div>
+      <div class="week" id="week"></div>
+    </div>
+  </section>
+
+  <!-- ============ 卡片库 ============ -->
+  <section class="view" id="cards">
+    <div class="search-wrap">
+      <span class="icon">⌕</span>
+      <input type="text" placeholder="搜索经验内容" id="q">
+    </div>
+    <div class="filters" id="filters">
+      <button class="on" data-f="all">全部 128</button>
+      <button data-f="g">有效 87</button>
+      <button data-f="r">失败 23</button>
+      <button data-f="n">中性 18</button>
+    </div>
+    <div class="cards" id="cardList"></div>
+    <button class="load-more" id="loadMore">显示更早的经验</button>
+  </section>
+
+  <!-- ============ 会话 ============ -->
+  <section class="view" id="sessions">
+    <div id="sessList"></div>
+    <div class="footnote">会话结束 30 分钟后自动开始学习 · 也可手动结束立即学习</div>
+  </section>
+
+  <div class="footnote" id="mockNote">产品示意图 · 数据为演示用途</div>
+</main>
+
+<script>
+/* ---------- 视图切换 ---------- */
+document.querySelectorAll('.seg button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.seg button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+    document.getElementById(b.dataset.v).classList.add('on');
+  };
+});
+
+/* ---------- 打分分布 ---------- */
+const distData = [1, 0, 1, 3, 8, 10, 26, 35, 28, 16];
+const distEl = document.getElementById('dist');
+distData.forEach((n, i) => {
+  const b = document.createElement('div');
+  b.className = 'b' + (i < 5 ? ' neg' : '');
+  b.style.height = Math.max(4, n / 35 * 100) + '%';
+  b.dataset.n = n + ' 条';
+  distEl.appendChild(b);
+});
+
+/* ---------- 学习节奏 ---------- */
+const weekData = [8, 15, 4, 21, 12, 0, 14];
+const weekEl = document.getElementById('week');
+weekData.forEach((n, i) => {
+  const d = document.createElement('div');
+  d.className = 'd' + (i === 6 ? ' today' : '');
+  const b = document.createElement('div');
+  b.className = 'b';
+  b.style.height = Math.max(4, n / 21 * 84) + 'px';
+  const s = document.createElement('span');
+  const t = new Date(); t.setDate(t.getDate() - (6 - i));
+  s.textContent = (t.getMonth() + 1) + '月' + t.getDate() + '日';
+  d.appendChild(b); d.appendChild(s);
+  weekEl.appendChild(d);
+});
+
+/* ---------- 卡片数据（模拟）---------- */
+const ALL = [
+  { task: '在 zcode 里配置模型 provider', act: '改配置前先备份原文件', g: 0.9, w: '5 分钟前' },
+  { task: '排查订单服务连接池报错', act: '先看监控的趋势曲线再查代码，直接定位到超时配置', g: 0.7, w: '1 小时前' },
+  { task: '写周报', act: '从 git 提交记录生成草稿，再人工补充进展背景', g: 0.5, w: '3 小时前' },
+  { task: '修改告警规则', act: '没确认规则 ID 就直接改了线上配置，改错了对象', g: -0.8, w: '昨天' },
+  { task: '解释一段遗留代码', act: '逐行解释了实现细节，用户想要的是架构层面的说明', g: -0.3, w: '昨天' },
+  { task: '调研自进化 agent 现状', act: '并行派三个子任务分别摸学术、产品、基础设施', g: 0.8, w: '前天' },
+  { task: '修复测试失败', act: '先跑单个用例定位，而不是全量跑完再看', g: 0.6, w: '前天' },
+  { task: '数据库慢查询优化', act: '直接加索引没先看执行计划，方向错了', g: -0.6, w: '3 天前' },
+];
+
+function cls(g) { return g > 0.15 ? 'g' : g < -0.15 ? 'r' : 'n'; }
+function tag(cls) { return cls === 'g' ? '有效' : cls === 'r' ? '失败' : '中性'; }
+
+let curFilter = 'all', curQ = '';
+
+function render() {
+  const list = ALL.filter(c => {
+    if (curFilter !== 'all' && cls(c.g) !== curFilter) return false;
+    if (curQ && !(c.act + c.task).toLowerCase().includes(curQ)) return false;
+    return true;
+  });
+  const el = document.getElementById('cardList');
+  el.innerHTML = '';
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><div class="big">🔍</div><p>没有匹配的经验</p></div>';
+    return;
+  }
+  list.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'exp ' + cls(c.g);
+    d.innerHTML = `
+      <div class="body">
+        <div class="task">${tag(cls(c.g))} · 来自「${c.task}」</div>
+        <div class="act">${c.act}</div>
+      </div>
+      <div class="score ${c.g > 0.15 ? 'p' : c.g < -0.15 ? 'm' : 'z'}">${c.g > 0 ? '+' : ''}${c.g.toFixed(1)}</div>
+      <div class="when">${c.w}</div>
+      <button class="rm" title="删除">✕</button>`;
+    d.querySelector('.rm').onclick = () => {
+      d.classList.add('removing');
+      setTimeout(() => d.remove(), 250);
+    };
+    el.appendChild(d);
+  });
+}
+document.querySelectorAll('#filters button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('#filters button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    curFilter = b.dataset.f; render();
+  };
+});
+let deb;
+document.getElementById('q').oninput = e => {
+  clearTimeout(deb);
+  deb = setTimeout(() => { curQ = e.target.value.trim().toLowerCase(); render(); }, 200);
+};
+render();
+document.getElementById('loadMore').onclick = e => e.target.style.color = 'var(--text-3)';
+
+/* ---------- 会话（可展开轨迹）---------- */
+const sessData = [
+  { sid: 'default', live: true, turns: 7, last: '3 分钟前',
+    preview: [['用户', '帮我看看这个报错日志…'], ['AI', '这是连接池耗尽，建议调大 max_connections…']] },
+  { sid: 'ticket-142', live: false, turns: 12, closed: '2 小时前', cards: 3,
+    preview: [['用户', '这个接口为什么这么慢'], ['AI', '先查执行计划，发现缺索引…']] },
+  { sid: 'default', live: false, turns: 5, closed: '昨天', cards: 2,
+    preview: [['用户', '帮我写个周报'], ['AI', '从最近提交生成草稿…']] },
+];
+const sEl = document.getElementById('sessList');
+sessData.forEach((s, i) => {
+  const d = document.createElement('div');
+  d.className = 'sess';
+  d.innerHTML = `
+    <div class="dot ${s.live ? 'live' : 'done'}"></div>
+    <div class="info">
+      <div class="name">${s.sid}</div>
+      <div class="meta">${s.live
+        ? s.turns + ' 轮对话 · ' + s.last
+        : s.turns + ' 轮对话 · ' + s.closed + ' · 学到 <b>' + s.cards + '</b> 条经验'}</div>
+    </div>
+    <div class="badge ${s.live ? 'live' : 'done'}">${s.live ? '学习中' : '已学习'}</div>
+    <div style="color:var(--text-3);font-size:13px" class="chev">›</div>`;
+  d.onclick = () => {
+    const tr = document.getElementById('trace' + i);
+    if (tr) { tr.remove(); return; }
+    const tr2 = document.createElement('div');
+    tr2.className = 'trace open'; tr2.id = 'trace' + i;
+    tr2.innerHTML = s.preview.map(([who, txt]) =>
+      `<div class="${who === '用户' ? 'u' : 'a'}"><div class="who">${who}</div><div class="txt">${txt}</div></div>`
+    ).join('') + `<div style="font-size:12px;color:var(--text-3);margin-top:8px">仅预览最近 2 轮 · 共 ${s.turns} 轮</div>`;
+    d.after(tr2);
+  };
+  sEl.appendChild(d);
+});
+</script>
+
+</body>
+</html>
